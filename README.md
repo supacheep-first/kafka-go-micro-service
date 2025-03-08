@@ -41,14 +41,36 @@ This project demonstrates a simple Kafka producer and consumer using Go. The pro
    go run main.go
    ```
 
-3. The API server will be running on port 8080. You can create a user by sending a POST request to `http://localhost:8080/users` with a JSON body:
-   ```json
-   {
-     "id": "1",
-     "name": "John Doe",
-     "email": "john.doe@example.com"
-   }
-   ```
+3. The API server will be running on port 8080. You can create, update, or delete a user by sending requests to the following endpoints:
+
+   - Create a user (POST request to `http://localhost:8080/users`):
+
+     ```json
+     {
+       "id": "1",
+       "name": "John Doe",
+       "email": "john.doe@example.com"
+     }
+     ```
+
+   - Update a user (PUT request to `http://localhost:8080/users/update`):
+
+     ```json
+     {
+       "id": "1",
+       "name": "John Doe",
+       "email": "john.doe@newdomain.com"
+     }
+     ```
+
+   - Delete a user (DELETE request to `http://localhost:8080/users/delete`):
+     ```json
+     {
+       "id": "1",
+       "name": "John Doe",
+       "email": "john.doe@example.com"
+     }
+     ```
 
 ## Running the Consumer (User Consumer)
 
@@ -64,7 +86,7 @@ This project demonstrates a simple Kafka producer and consumer using Go. The pro
    go run main.go
    ```
 
-3. The consumer will start listening for messages on the `users` topic and print received user data to the console.
+3. The consumer will start listening for messages on the `users` topic and handle user creation, update, and deletion events.
 
 ## Stopping the Services
 
