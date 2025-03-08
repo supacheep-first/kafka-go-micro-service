@@ -15,6 +15,13 @@ type User struct {
 	Email string `json:"email"`
 }
 
+var users = make(map[string]User) // Simulated database
+
+type KafkaEvent struct {
+	Action string `json:"action"`
+	User   User   `json:"user"`
+}
+
 type ConsumerGroupHandler struct{}
 
 func (ConsumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
@@ -22,13 +29,28 @@ func (ConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { retur
 
 func (h ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		var user User
-		if err := json.Unmarshal(msg.Value, &user); err != nil {
+		var event KafkaEvent
+		if err := json.Unmarshal(msg.Value, &event); err != nil {
 			log.Printf("Failed to parse Kafka message: %v", err)
 			continue
 		}
 
-		fmt.Printf("📥 Received User: %+v\n", user)
+		switch event.Action {
+		case "create":
+			users[event.User.ID] = event.User
+			fmt.Printf("✅ User created: %+v\n", event.User)
+		case "update":
+			if _, exists := users[event.User.ID]; exists {
+				users[event.User.ID] = event.User
+				fmt.Printf("🔄 User updated: %+v\n", event.User)
+			} else {
+				fmt.Println("❌ User not found for update")
+			}
+		case "delete":
+			delete(users, event.User.ID)
+			fmt.Printf("🗑️ User deleted: %+v\n", event.User)
+		}
+
 		session.MarkMessage(msg, "")
 	}
 	return nil

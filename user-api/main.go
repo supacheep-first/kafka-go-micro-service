@@ -29,13 +29,12 @@ func initKafkaProducer() {
 	}
 }
 
-func sendToKafka(user User) {
-	message, _ := json.Marshal(user)
+func sendToKafka(action string, user User) {
+	message, _ := json.Marshal(map[string]interface{}{"action": action, "user": user})
 	msg := &sarama.ProducerMessage{
 		Topic: "users",
 		Value: sarama.StringEncoder(message),
 	}
-
 	_, _, err := producer.SendMessage(msg)
 	if err != nil {
 		log.Printf("Failed to send Kafka message: %v", err)
@@ -48,9 +47,28 @@ func createUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
-
-	sendToKafka(user)
+	sendToKafka("create", user)
 	c.JSON(http.StatusOK, gin.H{"message": "User event sent", "user": user})
+}
+
+func updateUser(c *gin.Context) {
+	var user User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+	sendToKafka("update", user)
+	c.JSON(http.StatusOK, gin.H{"message": "User update event sent", "user": user})
+}
+
+func deleteUser(c *gin.Context) {
+	var user User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+	sendToKafka("delete", user)
+	c.JSON(http.StatusOK, gin.H{"message": "User delete event sent", "user": user})
 }
 
 func main() {
@@ -59,6 +77,8 @@ func main() {
 
 	r := gin.Default()
 	r.POST("/users", createUser)
+	r.PUT("/users/update", updateUser)
+	r.DELETE("/users/delete", deleteUser)
 
 	fmt.Println("User API running on port 8080")
 	r.Run(":8080")
